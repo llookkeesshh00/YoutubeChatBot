@@ -1,0 +1,30 @@
+# Environment
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+.npm-cache/
+.next/
+out/
+dist/
+*.tsbuildinfo
+
+# Local data
+data/
+uploads/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

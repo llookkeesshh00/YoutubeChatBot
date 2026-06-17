@@ -1,0 +1,9 @@
+fastapi[standard]
+uvicorn[standard]
+pydantic-settings
+python-multipart
+huggingface_hub
+sentence-transformers
+numpy
+python-dotenv
+
