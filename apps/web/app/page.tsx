@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { FormEvent, useState } from "react";
 import { FileText, Loader2, MessageSquareText, Send, Upload } from "lucide-react";
 
@@ -10,6 +11,17 @@ type Message = {
   content: string;
   citations?: ChatResponse["citations"];
 };
+
+const avatars = {
+  user: {
+    src: "/avatars/user.png",
+    alt: "User"
+  },
+  assistant: {
+    src: "/avatars/assistant.png",
+    alt: "Assistant"
+  }
+} as const;
 
 export default function Home() {
   const [title, setTitle] = useState("");
@@ -95,7 +107,7 @@ export default function Home() {
               <MessageSquareText size={20} />
             </div>
             <div>
-              <h1 className="text-xl font-semibold">Transcript Chat</h1>
+              <h1 className="text-xl font-semibold">YoutubeChatbot</h1>
               <p className="text-sm text-neutral-500">Index a transcript and ask grounded questions.</p>
             </div>
           </div>
@@ -155,7 +167,7 @@ export default function Home() {
         </section>
 
         <section className="flex min-h-screen flex-col">
-          <div className="border-b border-line bg-white px-5 py-4">
+          <div className="border-b border-line bg-blue-100 px-5 py-4">
             {session ? (
               <div>
                 <p className="text-sm font-semibold">{session.title}</p>
@@ -186,30 +198,59 @@ export default function Home() {
                 </div>
               </div>
             ) : (
-              messages.map((message, index) => (
-                <article
-                  key={`${message.role}-${index}`}
-                  className={
-                    message.role === "user"
-                      ? "ml-auto max-w-2xl rounded-md bg-ink px-4 py-3 text-white"
-                      : "max-w-3xl rounded-md border border-line bg-white px-4 py-3"
-                  }
-                >
-                  <p className="whitespace-pre-wrap text-sm leading-6">{message.content}</p>
-                  {message.citations?.length ? (
-                    <div className="mt-4 space-y-2 border-t border-line pt-3">
-                      {message.citations.map((citation) => (
-                        <details key={citation.chunk_id} className="text-sm">
-                          <summary className="cursor-pointer font-medium text-accent">
-                            {citation.timestamp ? `Source ${citation.timestamp}` : `Source ${citation.chunk_id}`}
-                          </summary>
-                          <p className="mt-2 line-clamp-4 text-neutral-600">{citation.text}</p>
-                        </details>
-                      ))}
-                    </div>
-                  ) : null}
-                </article>
-              ))
+              messages.map((message, index) => {
+                const isUser = message.role === "user";
+                const avatar = isUser ? avatars.user : avatars.assistant;
+
+                return (
+                  <div
+                    key={`${message.role}-${index}`}
+                    className={`flex items-start gap-3 ${isUser ? "justify-end" : "justify-start"}`}
+                  >
+                    {!isUser ? (
+                      <Image
+                        src={avatar.src}
+                        alt={avatar.alt}
+                        width={36}
+                        height={36}
+                        className="mt-1 h-9 w-9 shrink-0 rounded-full border border-line bg-white"
+                      />
+                    ) : null}
+
+                    <article
+                      className={
+                        isUser
+                          ? "max-w-[calc(100%-3rem)] rounded-md bg-ink px-4 py-3 text-white sm:max-w-2xl"
+                          : "max-w-[calc(100%-3rem)] rounded-md border border-line bg-white px-4 py-3 sm:max-w-3xl"
+                      }
+                    >
+                      <p className="whitespace-pre-wrap text-sm leading-6">{message.content}</p>
+                      {message.citations?.length ? (
+                        <div className="mt-4 space-y-2 border-t border-line pt-3">
+                          {message.citations.map((citation) => (
+                            <details key={citation.chunk_id} className="text-sm">
+                              <summary className="cursor-pointer font-medium text-accent">
+                                {citation.timestamp ? `Source ${citation.timestamp}` : `Source ${citation.chunk_id}`}
+                              </summary>
+                              <p className="mt-2 line-clamp-4 text-neutral-600">{citation.text}</p>
+                            </details>
+                          ))}
+                        </div>
+                      ) : null}
+                    </article>
+
+                    {isUser ? (
+                      <Image
+                        src={avatar.src}
+                        alt={avatar.alt}
+                        width={36}
+                        height={36}
+                        className="mt-1 h-9 w-9 shrink-0 rounded-full border border-line bg-white"
+                      />
+                    ) : null}
+                  </div>
+                );
+              })
             )}
           </div>
 
@@ -237,4 +278,3 @@ export default function Home() {
     </main>
   );
 }
-
