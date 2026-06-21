@@ -170,7 +170,7 @@ export default function Home() {
             <button
               type="submit"
               disabled={isIndexing || (!sourceUrl.trim() && transcript.trim().length < 20)}
-              className="flex w-full items-center justify-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isIndexing ? <Loader2 className="animate-spin" size={17} /> : <FileText size={17} />}
               {transcript.trim() ? "Index transcript" : "Index YouTube video"}
@@ -179,7 +179,7 @@ export default function Home() {
         </section>
 
         <section className="flex min-h-screen flex-col">
-          <div className="border-b border-line bg-blue-100 px-5 py-4">
+          <div className="border-b border-line  px-5 py-4">
             {session ? (
               <div>
                 <p className="text-sm font-semibold">{session.title}</p>

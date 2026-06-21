@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from huggingface_hub import InferenceClient
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
@@ -88,10 +89,49 @@ def _build_embeddings() -> Embeddings:
     if provider == "openai" and not settings.openai_api_key:
         print("[rag] OPENAI_API_KEY missing. Falling back to Hugging Face embeddings.", flush=True)
 
-    from langchain_huggingface import HuggingFaceEmbeddings
+    if not settings.hf_token:
+        raise RuntimeError("HF_TOKEN is required when EMBEDDING_PROVIDER=huggingface.")
 
-    print(f"[rag] Using HuggingFaceEmbeddings model={settings.embedding_model}.", flush=True)
-    return HuggingFaceEmbeddings(
-        model_name=settings.embedding_model,
-        encode_kwargs={"normalize_embeddings": True},
+    print(f"[rag] Using Hugging Face Inference embeddings model={settings.embedding_model}.", flush=True)
+    return HuggingFaceInferenceEmbeddings(
+        model=settings.embedding_model,
+        token=settings.hf_token,
+        timeout=settings.embedding_timeout_seconds,
     )
+
+
+class HuggingFaceInferenceEmbeddings(Embeddings):
+    def __init__(self, model: str, token: str, timeout: float) -> None:
+        self.model = model
+        self.client = InferenceClient(api_key=token, timeout=timeout)
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        embeddings = self.client.feature_extraction(
+            texts,
+            model=self.model,
+            normalize=True,
+            truncate=True,
+        )
+        return _to_embedding_list(embeddings)
+
+    def embed_query(self, text: str) -> list[float]:
+        embeddings = self.client.feature_extraction(
+            text,
+            model=self.model,
+            normalize=True,
+            truncate=True,
+        )
+        return _to_embedding_list(embeddings)[0]
+
+
+def _to_embedding_list(value) -> list[list[float]]:
+    if hasattr(value, "tolist"):
+        value = value.tolist()
+
+    if not value:
+        return []
+
+    if isinstance(value[0], (int, float)):
+        return [list(value)]
+
+    return [list(item) for item in value]
