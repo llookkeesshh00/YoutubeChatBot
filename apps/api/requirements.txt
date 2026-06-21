@@ -3,7 +3,13 @@ uvicorn[standard]
 pydantic-settings
 python-multipart
 huggingface_hub
+langchain
+langchain-community
+langchain-huggingface
+langchain-openai
+langchain-text-splitters
+faiss-cpu
+youtube-transcript-api
 sentence-transformers
 numpy
 python-dotenv
-

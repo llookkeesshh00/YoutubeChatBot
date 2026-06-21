@@ -7,10 +7,17 @@ class TranscriptIn(BaseModel):
     transcript: str = Field(min_length=20)
 
 
+class YouTubeImportIn(BaseModel):
+    url: str = Field(min_length=3)
+    title: str | None = Field(default=None, max_length=160)
+
+
 class TranscriptCreated(BaseModel):
     session_id: str
     title: str
     chunks_count: int
+    source_url: str | None = None
+    video_id: str | None = None
 
 
 class ChatIn(BaseModel):
@@ -29,4 +36,3 @@ class Citation(BaseModel):
 class ChatOut(BaseModel):
     answer: str
     citations: list[Citation]
-

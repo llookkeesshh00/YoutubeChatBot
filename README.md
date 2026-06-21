@@ -1,13 +1,16 @@
 # YouTube Transcript Chatbot
 
-A local development starter for a web-based RAG app. Users can paste or upload a transcript, ask questions, and get answers grounded in transcript chunks with timestamp-style citations.
+A local development starter for a web-based RAG app. Users can paste a YouTube link, paste/upload a transcript, ask questions, and get answers grounded in retrieved transcript chunks.
 
 ## Stack
 
 - Frontend: Next.js, React, TypeScript, Tailwind CSS
 - Backend: FastAPI, Python
 - LLM: Hugging Face Inference Providers
-- Local embeddings: sentence-transformers
+- Indexing: LangChain `RecursiveCharacterTextSplitter`
+- Vector store: FAISS
+- Retriever: LangChain similarity retriever with `k=4`
+- Embeddings: Hugging Face by default, OpenAI optional
 - Future storage: PostgreSQL with pgvector
 
 ## Folder Layout
@@ -70,6 +73,23 @@ HF_MODEL=openai/gpt-oss-120b:fastest
 ```
 
 Without `HF_TOKEN`, the backend still runs and returns a simple extractive answer from the retrieved transcript chunks.
+
+## Embeddings
+
+The default embedding provider is free/local Hugging Face embeddings:
+
+```env
+EMBEDDING_PROVIDER=huggingface
+EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+```
+
+To use OpenAI embeddings instead:
+
+```env
+EMBEDDING_PROVIDER=openai
+OPENAI_API_KEY=your_key_here
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+```
 
 ## Windows Notes
 

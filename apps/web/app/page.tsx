@@ -1,10 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { FormEvent, useState } from "react";
-import { FileText, Loader2, MessageSquareText, Send, Upload } from "lucide-react";
+import { FormEvent, ReactNode, useState } from "react";
+import { CheckCircle2, FileText, Loader2, MessageSquareText, Send, Upload } from "lucide-react";
 
-import { askQuestion, ChatResponse, createTranscript, TranscriptCreated } from "@/lib/api";
+import { askQuestion, ChatResponse, createTranscript, importYouTubeVideo, TranscriptCreated } from "@/lib/api";
 
 type Message = {
   role: "user" | "assistant";
@@ -33,21 +33,34 @@ export default function Home() {
   const [isIndexing, setIsIndexing] = useState(false);
   const [isAsking, setIsAsking] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   async function handleTranscriptSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setSuccessMessage("");
     setIsIndexing(true);
 
     try {
-      const created = await createTranscript({
-        title: title || "Untitled video",
-        source_url: sourceUrl || undefined,
-        transcript
-      });
+      const created = transcript.trim()
+        ? await createTranscript({
+            title: title || "Untitled video",
+            source_url: sourceUrl || undefined,
+            transcript
+          })
+        : await importYouTubeVideo({
+            url: sourceUrl,
+            title: title || undefined
+          });
       setSession(created);
       setMessages([]);
+      setQuestion("");
+      setTitle("");
+      setSourceUrl("");
+      setTranscript("");
+      setSuccessMessage(`${created.title} indexed successfully with ${created.chunks_count} searchable chunks.`);
     } catch (err) {
+      setSuccessMessage("");
       setError(err instanceof Error ? err.message : "Could not index transcript.");
     } finally {
       setIsIndexing(false);
@@ -100,15 +113,15 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-paper">
-      <div className="mx-auto grid min-h-screen max-w-7xl grid-cols-1 lg:grid-cols-[420px_1fr]">
-        <section className="border-b border-line bg-white p-5 lg:border-b-0 lg:border-r">
+      <div className="mx-auto grid min-h-screen max-w-7xl  grid-cols-1 lg:grid-cols-[420px_1fr]">
+        <section className="border-b border-line  bg-blue-100 p-5 lg:border-b-0 lg:border-r">
           <div className="mb-5 flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-md bg-ink text-white">
+            <div className="grid h-10 w-10 place-items-center rounded-md bg-blue-600 text-white">
               <MessageSquareText size={20} />
             </div>
             <div>
-              <h1 className="text-xl font-semibold">YoutubeChatbot</h1>
-              <p className="text-sm text-neutral-500">Index a transcript and ask grounded questions.</p>
+              <h1 className="text-xl font-semibold">Youtube Chatbot</h1>
+              <p className="text-sm text-neutral-500">Paste a YouTube link or upload a transcript</p>
             </div>
           </div>
 
@@ -133,9 +146,9 @@ export default function Home() {
               />
             </label>
 
-            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-line bg-neutral-50 px-3 py-3 text-sm font-medium hover:bg-neutral-100">
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border bg-blue-400 border-dashed border-line  px-3 py-3 text-sm font-medium hover:bg-blue-200">
               <Upload size={17} />
-              Upload .txt, .srt, or .vtt transcript
+              Upload .txt /.srt /.vtt transcript
               <input
                 type="file"
                 accept=".txt,.srt,.vtt"
@@ -150,18 +163,17 @@ export default function Home() {
                 value={transcript}
                 onChange={(event) => setTranscript(event.target.value)}
                 className="h-[360px] w-full resize-none rounded-md border border-line bg-white px-3 py-2 text-sm leading-6 outline-none focus:border-accent"
-                placeholder="Paste transcript text here..."
-                required
+                placeholder="Optional if the YouTube video has captions. Paste transcript text here as fallback..."
               />
             </label>
 
             <button
               type="submit"
-              disabled={isIndexing || transcript.trim().length < 20}
+              disabled={isIndexing || (!sourceUrl.trim() && transcript.trim().length < 20)}
               className="flex w-full items-center justify-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isIndexing ? <Loader2 className="animate-spin" size={17} /> : <FileText size={17} />}
-              Index transcript
+              {transcript.trim() ? "Index transcript" : "Index YouTube video"}
             </button>
           </form>
         </section>
@@ -184,6 +196,19 @@ export default function Home() {
           {error ? (
             <div className="m-5 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
+            </div>
+          ) : null}
+
+          {successMessage ? (
+            <div
+              role="status"
+              className="m-5 flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 shadow-sm"
+            >
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+              <div>
+                <p className="font-semibold">Transcript indexed</p>
+                <p className="mt-0.5 text-emerald-700">{successMessage}</p>
+              </div>
             </div>
           ) : null}
 
@@ -213,18 +238,18 @@ export default function Home() {
                         alt={avatar.alt}
                         width={36}
                         height={36}
-                        className="mt-1 h-9 w-9 shrink-0 rounded-full border border-line bg-white"
+                        className="mt-1 h-10 w-10 shrink-0 rounded-full border border-black border-line bg-white"
                       />
                     ) : null}
 
                     <article
                       className={
                         isUser
-                          ? "max-w-[calc(100%-3rem)] rounded-md bg-ink px-4 py-3 text-white sm:max-w-2xl"
-                          : "max-w-[calc(100%-3rem)] rounded-md border border-line bg-white px-4 py-3 sm:max-w-3xl"
+                          ? "max-w-[calc(100%-3rem)] rounded-lg bg-blue-500 px-4 py-3 text-white sm:max-w-2xl"
+                          : "max-w-[calc(100%-3rem)] rounded-lg border border-line bg-white px-4 py-3 sm:max-w-3xl"
                       }
                     >
-                      <p className="whitespace-pre-wrap text-sm leading-6">{message.content}</p>
+                      <MarkdownMessage content={message.content} isUser={isUser} />
                       {message.citations?.length ? (
                         <div className="mt-4 space-y-2 border-t border-line pt-3">
                           {message.citations.map((citation) => (
@@ -245,7 +270,7 @@ export default function Home() {
                         alt={avatar.alt}
                         width={36}
                         height={36}
-                        className="mt-1 h-9 w-9 shrink-0 rounded-full border border-line bg-white"
+                        className="mt-1 h-9 w-9 shrink-0 rounded-full border border-black border-line bg-white"
                       />
                     ) : null}
                   </div>
@@ -277,4 +302,148 @@ export default function Home() {
       </div>
     </main>
   );
+}
+
+function MarkdownMessage({ content, isUser }: { content: string; isUser: boolean }) {
+  const blocks = parseMarkdownBlocks(content);
+  const linkText = isUser ? "text-white" : "text-accent";
+  const codeClass = isUser ? "bg-white/20 text-white" : "bg-neutral-100 text-ink";
+
+  return (
+    <div className="text-sm leading-6">
+      {blocks.map((block, index) => {
+        if (block.type === "unordered-list") {
+          return (
+            <ul key={index} className="mb-3 ml-5 list-disc space-y-1 last:mb-0">
+              {block.items.map((item, itemIndex) => (
+                <li key={itemIndex} className="pl-1">
+                  {renderInlineMarkdown(item, linkText, codeClass)}
+                </li>
+              ))}
+            </ul>
+          );
+        }
+
+        if (block.type === "ordered-list") {
+          return (
+            <ol key={index} className="mb-3 ml-5 list-decimal space-y-1 last:mb-0">
+              {block.items.map((item, itemIndex) => (
+                <li key={itemIndex} className="pl-1">
+                  {renderInlineMarkdown(item, linkText, codeClass)}
+                </li>
+              ))}
+            </ol>
+          );
+        }
+
+        return (
+          <p key={index} className="mb-2 whitespace-pre-wrap last:mb-0">
+            {renderInlineMarkdown(block.text, linkText, codeClass)}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+type MarkdownBlock =
+  | { type: "paragraph"; text: string }
+  | { type: "unordered-list"; items: string[] }
+  | { type: "ordered-list"; items: string[] };
+
+function parseMarkdownBlocks(content: string): MarkdownBlock[] {
+  const blocks: MarkdownBlock[] = [];
+  const lines = content.replace(/\r\n/g, "\n").split("\n");
+  let paragraph: string[] = [];
+
+  function flushParagraph() {
+    if (paragraph.length) {
+      blocks.push({ type: "paragraph", text: paragraph.join("\n") });
+      paragraph = [];
+    }
+  }
+
+  for (const line of lines) {
+    const unordered = line.match(/^\s*[-*]\s+(.+)$/);
+    const ordered = line.match(/^\s*\d+[.)]\s+(.+)$/);
+
+    if (!line.trim()) {
+      flushParagraph();
+      continue;
+    }
+
+    if (unordered) {
+      flushParagraph();
+      const previous = blocks[blocks.length - 1];
+      if (previous?.type === "unordered-list") {
+        previous.items.push(unordered[1]);
+      } else {
+        blocks.push({ type: "unordered-list", items: [unordered[1]] });
+      }
+      continue;
+    }
+
+    if (ordered) {
+      flushParagraph();
+      const previous = blocks[blocks.length - 1];
+      if (previous?.type === "ordered-list") {
+        previous.items.push(ordered[1]);
+      } else {
+        blocks.push({ type: "ordered-list", items: [ordered[1]] });
+      }
+      continue;
+    }
+
+    paragraph.push(line);
+  }
+
+  flushParagraph();
+  return blocks;
+}
+
+function renderInlineMarkdown(text: string, linkClass: string, codeClass: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  const pattern = /(\*\*([^*]+)\*\*|__([^_]+)__|`([^`]+)`|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|\*([^*]+)\*|_([^_]+)_)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(text.slice(lastIndex, match.index));
+    }
+
+    if (match[2] || match[3]) {
+      nodes.push(
+        <strong key={match.index} className="font-semibold">
+          {match[2] ?? match[3]}
+        </strong>
+      );
+    } else if (match[4]) {
+      nodes.push(
+        <code key={match.index} className={`rounded px-1.5 py-0.5 font-mono text-[0.85em] ${codeClass}`}>
+          {match[4]}
+        </code>
+      );
+    } else if (match[5] && match[6]) {
+      nodes.push(
+        <a key={match.index} className={`${linkClass} underline underline-offset-2`} href={match[6]} rel="noreferrer" target="_blank">
+          {match[5]}
+        </a>
+      );
+    } else {
+      nodes.push(
+        <em key={match.index} className="italic">
+          {match[7] ?? match[8]}
+        </em>
+      );
+    }
+
+    lastIndex = pattern.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    nodes.push(text.slice(lastIndex));
+  }
+
+  return nodes;
 }
