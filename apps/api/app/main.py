@@ -45,6 +45,11 @@ def health() -> dict[str, str]:
     return {"status": "ok", "service": settings.app_name}
 
 
+@app.get("/")
+def root() -> dict[str, str]:
+    return health()
+
+
 @app.post("/api/transcripts", response_model=TranscriptCreated)
 def create_transcript(payload: TranscriptIn) -> TranscriptCreated:
     return _create_session(
